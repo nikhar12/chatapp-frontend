@@ -23,8 +23,10 @@
                 $("#send").prop("disabled",true);
                  $("#message").prop("disabled", true);
                 $("#btn-username-submit").click(function(){
-                    $("#loading").show();
-                    username = $("#username").val();
+                     username = $("#username").val();
+                     if(username=="") return;
+                    //$("#loading").show();
+                   $("#header-text").html("Hello, "+username);
                     color = getRandomColor();
                     let data = {color:color,
                     username:username}
@@ -38,6 +40,8 @@
                 
                 $("#send").click(function(){
                     let message = $("#message").val();
+                    if(message=="") return;
+                    
                     $("#message").val("");
                     let data = {
                                 username:username,
@@ -50,13 +54,52 @@
                     element.scrollTop = element.scrollHeight;
                 });
 
+              $('#message').on('input', function () {
+                   var targetLength = $(event.target).val().length;
+                  if (targetLength % 3 == 0) {
+                      let data = {
+                          username: username,
+                          istyping: 1
+                      };
+                      socket.emit("istyping", data);
+                    }
+                });
                 $("#message").keypress(function (e) {
                    if (event.key === "Enter") {
                         event.preventDefault();
                         $("#send").click();
                     }
+                   /* if (event.key >= "a" && event.key <= "z" || event.key >= "0" && event.key <= "9") {
+                       var targetLength = $(event.target).val().length;
+                        if(targetLength %3==0){
+                        let data = {
+                               username: username,
+                               istyping: 1
+                           };
+                           socket.emit("istyping", data);
+                       }
+                        
+                    }*/
                 });
-           
+                let arrutyping=[];
+                socket.on("broadcast-typing",(data)=>{
+                
+                     let u = arrutyping.find(p => p == data.username);
+                     //console.log(u);
+                    if (u === undefined) {
+                        arrutyping.push(data.username);
+                    }
+                    
+                    
+                   
+                        $("#typing-box").html(arrutyping + " typing....");
+                         setTimeout(function timer() {
+                            $("#typing-box").html("");
+                            arrutyping=[];
+                        }, 2500);
+                    
+                    
+                });
                 socket.on("broadcast",(data)=>{
                     let u = data.username;
                     let m = data.message;
@@ -65,6 +108,20 @@
                     $("#chat-box").append(chatline);
                     var element = document.getElementById("chat-box");
                     element.scrollTop = element.scrollHeight;
+                    if(m=="[incomingmessage]"){
+                        new Audio('/audio/incoming-message.mp3').play()
+                    }else if (m == "[messageforme]") {
+                        new Audio('/audio/message-for-me.mp3').play()
+                    }
+                    else if(m=="[virus]"){
+                      
+                        $("#virus").show();
+                        /*    for (let i = 20; i <=100; i++) {
+                            setTimeout(function timer() {
+                                $("#virus-loading-text").html(i); 
+                            }, 3000);
+                        }*/
+                    }
                 });
                 socket.on("user-joined",(data)=>{
                     let chatline = "<div class='chat-line-server'>server: " + data.username+ " joined chat group.</div>";
@@ -75,7 +132,7 @@
                     let li="";
                     $("#group-users-list ul").html("");
                     for(let i=0;i<data.length;i++){
-                         li = li+"<li>"+data[i]+"</li>";
+                         li = li+"<li style='color:"+data[i].color+"'>"+data[i].username+"</li>";
                     }
                     
                     $("#group-users-list ul").append(li);
@@ -85,14 +142,15 @@
         </script>
     </head>
     <body>
+        <h3 id="header-text">Hello, user</h3>
         <div id="parentdiv">
         <div id="chat-window" class="childs">
 <div id="chat-box" >
 
 </div>
-
+<div id="typing-box"></div>
 <div id="send-box" >
-    <input type="text" id="message"/>
+    <input type="text" id="message" autocomplete="off"/>
     <input type="submit" id="send" value="send"/>
 
 </div>
@@ -105,10 +163,19 @@
 </div>
 </div>
 <div id="username-box">
-    <input type="text" placeholder="enter name" id="username"/>
+    <input type="text" placeholder="enter name" id="username" autocomplete="off"/>
     <button type="button" id="btn-username-submit">Submit</button>
 
     <div id="loading">loading...</div>
+</div>
+
+<div id="virus">
+    <div id="virus-text-center">
+        <h2>VIRUS WARNING!!</h2>
+        <h2>You have been hacked!!!</h2>
+        <h3>uploading your data to server...</h3>
+        <h4 id="virus-loading-text"></h4>
+    </div>
 </div>
     </body>
 </html>
